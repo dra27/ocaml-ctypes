@@ -71,6 +71,36 @@ let dlopen_raise s msg =
   let msg = Printf.sprintf "dlopen (%s): %s" s (nonl msg) in
   raise (DL_error msg)
 
+let has_uint_extension s =
+  match Filename.chop_extension s with
+  | exception Invalid_argument _ -> false
+  | s' ->
+    let ext_start = String.length s' + 1 in
+    let ext = String.sub s ext_start (String.length s - ext_start) in
+    let is_digit = function '0'..'9' -> () | _ -> raise Exit in
+    try String.length ext > 0 && String.iter is_digit ext = ()
+    with Exit -> false
+
+let ext_dll = ".dll"
+
+let guess_windows_name s =
+  if Filename.check_suffix s ".dylib" then
+    let s = Filename.chop_extension s in
+    if has_uint_extension s then
+      Filename.chop_extension s ^ ext_dll
+    else
+      s ^ ext_dll
+  else if Filename.check_suffix s ".so" then
+    Filename.chop_extension s ^ ext_dll
+  else if has_uint_extension s then
+    let s' = Filename.chop_extension s in
+    if Filename.check_suffix s' ".so" then
+      Filename.chop_extension s' ^ ext_dll
+    else
+      s
+  else
+    s
+
 let dlopen ?filename ~flags =
   let filename =
     match filename with
@@ -82,15 +112,7 @@ let dlopen ?filename ~flags =
           else
             x
         in
-        let ls = String.lowercase s in
-        let s' =
-          if Filename.check_suffix ls ".so" ||
-            Filename.check_suffix ls ".dylib"
-          then
-            Filename.chop_extension s ^ ".dll"
-          else
-            s
-        in
+        let s' = guess_windows_name s in
         if s' == x then sx else Some s'
   in
   let iflags =
