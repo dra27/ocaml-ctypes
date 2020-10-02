@@ -97,7 +97,7 @@ let guess_windows_name s =
   else if has_uint_extension s then
     let s' = Filename.chop_extension s in
     if Filename.check_suffix s' ".so" then
-      Filename.chop_extension s' ^ ext_dll
+      Filename.chop_extension s' ^ "-" ^ String.make 1 s.[String.length s - 1] ^ ext_dll
     else
       s
   else
